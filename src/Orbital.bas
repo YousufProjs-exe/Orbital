@@ -3,8 +3,8 @@ Option Explicit
 
 Private Const FIRST_LANE As Long = 1
 Private Const LAST_LANE As Long = 3
-Private Const PLAYER_ROW As Long = 16
-Private Const FIRST_DEBRIS_ROW As Long = 6
+Private Const PLAYER_ROW As Long = 20
+Private Const FIRST_DEBRIS_ROW As Long = 7
 Private Const TICK_SECONDS As Long = 1
 
 Private debrisLane As Long
@@ -25,40 +25,108 @@ Public Sub SetupBoard()
 
     ws.Cells.UnMerge
     ws.Cells.Clear
-    ws.Cells.ColumnWidth = 3
-    ws.Rows.RowHeight = 20
+    ws.Cells.ColumnWidth = 10
+    ws.Rows.RowHeight = 24
 
     ws.Activate
     ActiveWindow.DisplayGridlines = False
+    ActiveWindow.Zoom = 85
 
-    ws.Range("B2:J26").Interior.Color = RGB(10, 15, 28)
+    ws.Range("B2:N25").Interior.Color = RGB(8, 13, 27)
 
-    With ws.Range("B2:J2")
+    With ws.Range("B2:N2")
         .Merge
-        .Value = "ORBITAL"
+        .Value = "O R B I T A L"
         .Font.Name = "Consolas"
-        .Font.Size = 20
+        .Font.Size = 26
         .Font.Bold = True
         .Font.Color = RGB(100, 200, 255)
         .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .RowHeight = 48
+    End With
+
+    With ws.Range("B3:N3")
+        .Merge
+        .Value = "SATELLITE SURVIVAL SYSTEM  //  MISSION CONTROL"
+        .Font.Name = "Consolas"
+        .Font.Size = 10
+        .Font.Color = RGB(80, 255, 190)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .RowHeight = 26
+    End With
+
+    With ws.Range("B4:N4")
+        .Merge
+        .Value = "SYSTEM READY  |  AVOID INCOMING DEBRIS"
+        .Font.Name = "Consolas"
+        .Font.Size = 11
+        .Font.Bold = True
+        .Font.Color = RGB(100, 200, 255)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .RowHeight = 30
+    End With
+
+    With ws.Range("C6:F6")
+        .Merge
+        .Value = "LANE 01"
+    End With
+
+    With ws.Range("G6:J6")
+        .Merge
+        .Value = "LANE 02"
+    End With
+
+    With ws.Range("K6:N6")
+        .Merge
+        .Value = "LANE 03"
+    End With
+
+    With ws.Range("C6:N6")
+        .Font.Name = "Consolas"
+        .Font.Size = 11
+        .Font.Bold = True
+        .Font.Color = RGB(100, 200, 255)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .RowHeight = 30
     End With
 
     DrawLanes
     CreateGameButtons
+
+    With ws.Range("B25:N25")
+        .Merge
+        .Value = "ORBITAL  //  SURVIVE THE ORBIT"
+        .Font.Name = "Consolas"
+        .Font.Size = 9
+        .Font.Color = RGB(100, 130, 160)
+        .HorizontalAlignment = xlCenter
+    End With
 End Sub
 
 Public Sub DrawLanes()
     Dim ws As Worksheet
+    Dim laneRange As Range
 
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
-    ws.Range("D6:D16,F6:F16,H6:H16").Interior.Color = RGB(20, 35, 55)
+    ws.Range("C7:F20").Interior.Color = RGB(16, 29, 48)
+    ws.Range("G7:J20").Interior.Color = RGB(16, 29, 48)
+    ws.Range("K7:N20").Interior.Color = RGB(16, 29, 48)
 
-    With ws.Range("E5")
-        .Value = "ORBITAL LANES"
-        .Font.Name = "Consolas"
-        .Font.Color = RGB(100, 200, 255)
-    End With
+    For Each laneRange In ws.Range("C7:F20,G7:J20,K7:N20").Areas
+        With laneRange.Borders
+            .LineStyle = xlContinuous
+            .Color = RGB(45, 75, 105)
+            .Weight = xlThin
+        End With
+    Next laneRange
+
+    ws.Range("D7:D20,H7:H20,L7:L20").HorizontalAlignment = xlCenter
+    ws.Range("D7:D20,H7:H20,L7:L20").VerticalAlignment = xlCenter
 End Sub
 
 Public Sub PlaceSatellite()
@@ -66,12 +134,33 @@ Public Sub PlaceSatellite()
 
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
-    ws.Range("B20").Value = 2
-    ws.Range("E18").Value = "SATELLITE"
-    ws.Range("E18").Font.Name = "Consolas"
-    ws.Range("E18").Font.Color = RGB(80, 255, 190)
-
+    ws.Range("B21").Value = 2
     RenderSatellite ws, 2
+End Sub
+
+Private Sub RenderSatellite(ByVal ws As Worksheet, ByVal lane As Long)
+    Dim positions As Variant
+    Dim i As Long
+
+    positions = Array("D20", "H20", "L20")
+
+    For i = LBound(positions) To UBound(positions)
+        With ws.Range(positions(i))
+            .ClearContents
+            .Font.Name = "Consolas"
+            .Font.Size = 24
+            .Font.Bold = True
+            .Font.Color = RGB(80, 255, 190)
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+        End With
+    Next i
+
+    With ws.Range(positions(lane - 1))
+        .Value = PLAYER_SYMBOL
+        .Font.Size = 26
+        .Font.Color = RGB(80, 255, 190)
+    End With
 End Sub
 
 Public Sub MoveLeft()
@@ -90,7 +179,7 @@ Private Sub ChangeLane(ByVal direction As Long)
 
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
-    lane = Val(ws.Range("B20").Value)
+    lane = Val(ws.Range("B21").Value)
     If lane = 0 Then lane = 2
 
     lane = lane + direction
@@ -98,30 +187,8 @@ Private Sub ChangeLane(ByVal direction As Long)
     If lane < FIRST_LANE Then lane = FIRST_LANE
     If lane > LAST_LANE Then lane = LAST_LANE
 
-    ws.Range("B20").Value = lane
+    ws.Range("B21").Value = lane
     RenderSatellite ws, lane
-End Sub
-
-Private Sub RenderSatellite(ByVal ws As Worksheet, ByVal lane As Long)
-    Dim positions As Variant
-    Dim i As Long
-
-    positions = Array("D16", "F16", "H16")
-
-    For i = LBound(positions) To UBound(positions)
-        With ws.Range(positions(i))
-            .ClearContents
-            .Font.Name = "Consolas"
-            .Font.Color = RGB(80, 255, 190)
-            .Font.Size = 16
-            .HorizontalAlignment = xlCenter
-        End With
-    Next i
-
-    With ws.Range(positions(lane - 1))
-        .Value = PLAYER_SYMBOL
-        .Font.Bold = True
-    End With
 End Sub
 
 Public Sub StartGame()
@@ -135,23 +202,21 @@ Public Sub StartGame()
     debrisLane = 0
     debrisRow = 0
 
-    ws.Range("D6:D16,F6:F16,H6:H16").ClearContents
-    ws.Range("B21").Value = "MISSION ACTIVE"
-    ws.Range("B21").Font.Name = "Consolas"
-    ws.Range("B21").Font.Color = RGB(80, 255, 190)
+    ws.Range("D7:D20,H7:H20,L7:L20").ClearContents
 
     DrawLanes
     PlaceSatellite
+
+    With ws.Range("B4")
+        .Value = "MISSION ACTIVE  |  DODGE THE DEBRIS"
+        .Font.Color = RGB(80, 255, 190)
+    End With
 
     Randomize
     SpawnDebris
 End Sub
 
 Private Sub SpawnDebris()
-    Dim ws As Worksheet
-
-    Set ws = ThisWorkbook.Worksheets("Orbital")
-
     debrisLane = Int(Rnd * 3) + 1
     debrisRow = FIRST_DEBRIS_ROW
 
@@ -163,15 +228,16 @@ Private Sub DrawDebris()
     Dim positions As Variant
 
     Set ws = ThisWorkbook.Worksheets("Orbital")
-    positions = Array("D", "F", "H")
+    positions = Array("D", "H", "L")
 
     With ws.Range(positions(debrisLane - 1) & debrisRow)
         .Value = DEBRIS_SYMBOL
         .Font.Name = "Consolas"
-        .Font.Color = RGB(255, 100, 100)
-        .Font.Size = 14
+        .Font.Size = 22
         .Font.Bold = True
+        .Font.Color = RGB(255, 100, 100)
         .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
     End With
 End Sub
 
@@ -182,16 +248,19 @@ Public Sub GameTick()
     If gameOver Or debrisLane = 0 Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets("Orbital")
-    positions = Array("D", "F", "H")
+    positions = Array("D", "H", "L")
 
     ws.Range(positions(debrisLane - 1) & debrisRow).ClearContents
     debrisRow = debrisRow + 1
 
     If debrisRow >= PLAYER_ROW Then
-        If debrisLane = Val(ws.Range("B20").Value) Then
+        If debrisLane = Val(ws.Range("B21").Value) Then
             gameOver = True
-            ws.Range("B21").Value = "MISSION FAILED"
-            ws.Range("B21").Font.Color = RGB(255, 100, 100)
+
+            With ws.Range("B4")
+                .Value = "MISSION FAILED  |  SATELLITE IMPACT"
+                .Font.Color = RGB(255, 100, 100)
+            End With
 
             MsgBox "Satellite hit by debris!", vbExclamation, "ORBITAL"
             Exit Sub
@@ -204,12 +273,8 @@ Public Sub GameTick()
 End Sub
 
 Public Sub StartAutoGame()
-    Dim ws As Worksheet
-
     StopAutoGame
     StartGame
-
-    Set ws = ThisWorkbook.Worksheets("Orbital")
 
     gameRunning = True
     ScheduleNextTick
@@ -268,31 +333,37 @@ Public Sub CreateGameButtons()
 
     Set btn = ws.Shapes.AddShape( _
         msoShapeRoundedRectangle, _
-        ws.Range("B24").Left, ws.Range("B24").Top, 145, 35)
+        ws.Range("C22").Left, ws.Range("C22").Top, 220, 48)
 
     With btn
         .Name = "btnStart"
-        .TextFrame.Characters.Text = "START / RESTART"
+        .TextFrame.Characters.Text = "START / RESTART MISSION"
         .OnAction = "'" & ThisWorkbook.Name & "'!StartAutoGame"
-        .Fill.ForeColor.RGB = RGB(20, 35, 55)
+        .Fill.ForeColor.RGB = RGB(16, 40, 55)
         .Line.ForeColor.RGB = RGB(80, 255, 190)
+        .Line.Weight = 2
         .TextFrame.Characters.Font.Name = "Consolas"
+        .TextFrame.Characters.Font.Size = 11
         .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(80, 255, 190)
+        .Placement = xlMove
     End With
 
     Set btn = ws.Shapes.AddShape( _
         msoShapeRoundedRectangle, _
-        ws.Range("F24").Left, ws.Range("F24").Top, 100, 35)
+        ws.Range("I22").Left, ws.Range("I22").Top, 150, 48)
 
     With btn
         .Name = "btnStop"
-        .TextFrame.Characters.Text = "STOP"
+        .TextFrame.Characters.Text = "STOP MISSION"
         .OnAction = "'" & ThisWorkbook.Name & "'!StopAutoGame"
-        .Fill.ForeColor.RGB = RGB(20, 35, 55)
+        .Fill.ForeColor.RGB = RGB(40, 22, 30)
         .Line.ForeColor.RGB = RGB(255, 100, 100)
+        .Line.Weight = 2
         .TextFrame.Characters.Font.Name = "Consolas"
+        .TextFrame.Characters.Font.Size = 11
         .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 100, 100)
+        .Placement = xlMove
     End With
 End Sub
