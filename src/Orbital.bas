@@ -3,8 +3,9 @@ Option Explicit
 
 Private Const FIRST_LANE As Long = 1
 Private Const LAST_LANE As Long = 3
+Private Const PLAYER_ROW As Long = 16
 
-Sub SetupBoard()
+Public Sub SetupBoard()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
@@ -18,13 +19,14 @@ Sub SetupBoard()
 
     With ws.Range("B2")
         .Value = "ORBITAL"
+        .Font.Name = "Consolas"
         .Font.Size = 20
-        .Font.Bold = True+
+        .Font.Bold = True
         .Font.Color = RGB(100, 200, 255)
     End With
 End Sub
 
-Sub DrawLanes()
+Public Sub DrawLanes()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
@@ -36,8 +38,7 @@ Sub DrawLanes()
     End With
 End Sub
 
-Private Const PLAYER_ROW As Long = 16
-Sub PlaceSatellite()
+Public Sub PlaceSatellite()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets("Orbital")
 
@@ -48,7 +49,6 @@ Sub PlaceSatellite()
     RenderSatellite ws, 2
 End Sub
 
-' ez one s 
 Public Sub MoveLeft()
     ChangeLane -1
 End Sub
@@ -81,7 +81,6 @@ Private Sub RenderSatellite(ByVal ws As Worksheet, ByVal lane As Long)
 
     positions = Array("D16", "F16", "H16")
 
-    ' learnt then applied 
     For i = LBound(positions) To UBound(positions)
         With ws.Range(positions(i))
             .ClearContents
@@ -91,5 +90,5 @@ Private Sub RenderSatellite(ByVal ws As Worksheet, ByVal lane As Long)
         End With
     Next i
 
-    ws.Range(positions(lane - 1)).Value = "?"
+    ws.Range(positions(lane - 1)).Value = "◆"
 End Sub
