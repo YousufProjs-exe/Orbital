@@ -21,10 +21,8 @@ Public Sub ShowMainMenu()
     'Format only the menu area.
     With ws.Range("B2:N23")
         .UnMerge
-        .Clear
-        .Interior.Color = RGB(13, 29, 47)
-        .Font.Name = "Consolas"
-        .Font.Color = RGB(235, 244, 255)
+        .ClearContents
+        .Interior.Pattern = xlNone
     End With
 
     ws.Columns("B:N").ColumnWidth = 10
