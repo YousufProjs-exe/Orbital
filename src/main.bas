@@ -22,9 +22,15 @@ Public Sub ShowMainMenu()
         End If
     Next i
 
-    'Clear only the menu area.
+    Dim cell As Range
+
+    For Each cell In ws.Range("B2:N23").Cells
+        If cell.MergeCells Then
+            cell.MergeArea.UnMerge
+        End If
+    Next cell
+
     With ws.Range("B2:N23")
-        .UnMerge
         .ClearContents
         .Interior.Pattern = xlNone
         .Borders.LineStyle = xlNone
