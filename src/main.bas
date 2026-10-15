@@ -8,25 +8,40 @@ Public Sub ShowMainMenu()
     Dim ws As Worksheet
     Dim shp As Shape
     Dim btn As Shape
+    Dim i As Long
+
+    On Error GoTo MenuError
 
     Set ws = ThisWorkbook.Worksheets(MENU_SHEET)
-
     Application.ScreenUpdating = False
 
-    For Each shp In ws.Shapes
-        If shp.Name = "btnStartMission" Then shp.Delete
-    Next shp
+    'Remove only the previous menu button.
+    For i = ws.Shapes.Count To 1 Step -1
+        If ws.Shapes(i).Name = "btnStartMission" Then
+            ws.Shapes(i).Delete
+        End If
+    Next i
 
+    'Clear only the menu area.
     With ws.Range("B2:N23")
         .UnMerge
         .ClearContents
         .Interior.Pattern = xlNone
+        .Borders.LineStyle = xlNone
+        .Font.Name = "Consolas"
+        .Font.Color = RGB(235, 244, 255)
+    End With
+
+    'Menu panel only.
+    With ws.Range("B2:N23")
+        .Interior.Color = RGB(13, 29, 47)
     End With
 
     ws.Columns("B:N").ColumnWidth = 10
     ws.Rows("2:23").RowHeight = 24
-    ws.Rows("2:2").RowHeight = 12
+    ws.Rows(2).RowHeight = 12
 
+    'Title.
     With ws.Range("C4:M5")
         .Merge
         .Value = "ORBITAL"
@@ -37,14 +52,17 @@ Public Sub ShowMainMenu()
         .VerticalAlignment = xlCenter
     End With
 
+    'Subtitle.
     With ws.Range("C6:M6")
         .Merge
         .Value = "SATELLITE SURVIVAL PROGRAM"
         .Font.Size = 10
         .Font.Color = RGB(145, 169, 198)
         .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
     End With
 
+    'Mission introduction.
     With ws.Range("D9:L10")
         .Merge
         .Value = "DODGE THE DEBRIS." & vbLf & _
@@ -55,9 +73,10 @@ Public Sub ShowMainMenu()
         .VerticalAlignment = xlCenter
     End With
 
+    'Sprite preview placeholder.
     With ws.Range("F12:J15")
         .Merge
-        .Value = "[ SATELLITE PREVIEW ]"    // just once the rocket pixel fin 
+        .Value = "[ SATELLITE PREVIEW ]"
         .Font.Size = 11
         .Font.Color = RGB(73, 217, 154)
         .Interior.Color = RGB(23, 40, 59)
@@ -65,6 +84,7 @@ Public Sub ShowMainMenu()
         .VerticalAlignment = xlCenter
     End With
 
+    'Start button.
     Set btn = ws.Shapes.AddShape( _
         msoShapeRoundedRectangle, _
         ws.Range("F17").Left, _
@@ -84,8 +104,10 @@ Public Sub ShowMainMenu()
         .Fill.ForeColor.RGB = RGB(73, 217, 154)
         .Line.Visible = msoFalse
         .OnAction = "'" & ThisWorkbook.Name & "'!StartMission"
+        .Placement = xlMove
     End With
 
+    'Controls.
     With ws.Range("C21:M22")
         .Merge
         .Value = "CONTROLS     LEFT / A: MOVE LEFT     RIGHT / D: MOVE RIGHT"
@@ -97,11 +119,17 @@ Public Sub ShowMainMenu()
     End With
 
     ws.Activate
-    ActiveWindow.DisplayGridlines = False
+    ActiveWindow.DisplayGridlines = True
     ActiveWindow.Zoom = 90
     ws.Range("B2").Select
 
     Application.ScreenUpdating = True
+    Exit Sub
+
+MenuError:
+    Application.ScreenUpdating = True
+    MsgBox "Could not display the ORBITAL menu:" & vbCrLf & _
+           Err.Description, vbExclamation, "ORBITAL"
 
 End Sub
 
@@ -113,10 +141,9 @@ Public Sub StartMission()
     Exit Sub
 
 StartError:
-    MsgBox "ORBITAL could not start the mission." & vbCrLf & vbCrLf & _
-           "Check that the Orbital module contains a working " & _
-           "StartAutoGame macro." & vbCrLf & _
-           "Details: " & Err.Description, _
-           vbExclamation, "ORBITAL - Mission Launch"
+    MsgBox "Mission launch failed." & vbCrLf & _
+           "Check that StartAutoGame exists in a standard VBA module." & _
+           vbCrLf & vbCrLf & "Details: " & Err.Description, _
+           vbExclamation, "ORBITAL"
 
 End Sub
