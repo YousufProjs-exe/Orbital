@@ -1,9 +1,9 @@
-
 Option Explicit
 
 Private Const SHEET_NAME As String = "Orbital"
 Private Const FIRST_LANE As Long = 1
 Private Const PLAYER_ROW As Long = 20
+Private Const SAFE_ROW As Long = 19
 Private Const FIRST_DEBRIS_ROW As Long = 7
 Private Const LEVEL_SECONDS As Long = 15
 
@@ -13,6 +13,7 @@ Private Const DEBRIS_SYMBOL As String = "X"
 Private debrisLanes(1 To 4) As Long
 Private debrisRows(1 To 4) As Long
 Private debrisCount As Long
+Private spawnCounter As Long
 
 Private playerLane As Long
 Private currentLevel As Long
@@ -38,13 +39,7 @@ Private Function LaneCount() As Long
     End If
 End Function
 
-Private Function LaneAddress(ByVal lane As Long, _
-                             ByVal rowNumber As Long) As String
-    LaneAddress = Cells(rowNumber, LaneColumn(lane)).Address
-End Function
-
 Public Sub SetupBoard()
-
     Dim ws As Worksheet
     Dim cell As Range
     Dim i As Long
@@ -154,11 +149,9 @@ SetupError:
     Application.ScreenUpdating = True
     MsgBox "Board setup failed: " & Err.Description, _
            vbExclamation, "ORBITAL"
-
 End Sub
 
 Public Sub DrawLanes()
-
     Dim ws As Worksheet
     Dim lane As Long
     Dim r As Long
@@ -168,14 +161,10 @@ Public Sub DrawLanes()
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
 
     For lane = 1 To 4
-
         c = LaneColumn(lane)
 
         For r = FIRST_DEBRIS_ROW To PLAYER_ROW
-
             Set laneCell = ws.Cells(r, c)
-
-            laneCell.ClearContents
             laneCell.Interior.Color = RGB(16, 29, 48)
             laneCell.HorizontalAlignment = xlCenter
             laneCell.VerticalAlignment = xlCenter
@@ -188,6 +177,15 @@ Public Sub DrawLanes()
                 .Weight = xlThin
             End With
 
+            If r = SAFE_ROW Then
+                laneCell.Interior.Color = RGB(22, 48, 65)
+
+                With laneCell.Borders(xlEdgeTop)
+                    .LineStyle = xlContinuous
+                    .Color = RGB(65, 190, 220)
+                    .Weight = xlMedium
+                End With
+            End If
         Next r
 
         Set laneCell = ws.Cells(6, c)
@@ -200,46 +198,35 @@ Public Sub DrawLanes()
             laneCell.Font.Bold = True
             laneCell.Font.Color = RGB(73, 217, 154)
             laneCell.HorizontalAlignment = xlCenter
+            laneCell.VerticalAlignment = xlCenter
         Else
             laneCell.ClearContents
             laneCell.Interior.Pattern = xlNone
             laneCell.Borders.LineStyle = xlNone
         End If
-
     Next lane
-
-    'Hide the internal lane index.
-    ws.Range("B26").Value = playerLane
-    ws.Range("B26").EntireColumn.Hidden = False
-    ws.Range("B26").Font.Color = RGB(255, 255, 255)
-
 End Sub
 
 Public Sub PlaceSatellite()
-
     Dim ws As Worksheet
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
 
     playerLane = 2
     RenderSatellite ws
-
 End Sub
 
 Private Sub RenderSatellite(ByVal ws As Worksheet)
-
     Dim lane As Long
     Dim spriteCell As Range
 
     For lane = 1 To 4
-
         Set spriteCell = ws.Cells(PLAYER_ROW, LaneColumn(lane))
         spriteCell.ClearContents
 
         If lane <= LaneCount() Then
             spriteCell.Interior.Color = RGB(16, 29, 48)
         End If
-
     Next lane
 
     Set spriteCell = ws.Cells(PLAYER_ROW, LaneColumn(playerLane))
@@ -251,51 +238,41 @@ Private Sub RenderSatellite(ByVal ws As Worksheet)
     spriteCell.Font.Color = RGB(73, 217, 154)
     spriteCell.HorizontalAlignment = xlCenter
     spriteCell.VerticalAlignment = xlCenter
-
 End Sub
 
 Public Sub MoveLeft()
-
     If Not gameRunning Or gameOver Then Exit Sub
 
     If playerLane > FIRST_LANE Then
         playerLane = playerLane - 1
         RenderSatellite ThisWorkbook.Worksheets(SHEET_NAME)
     End If
-
 End Sub
 
 Public Sub MoveRight()
-
     If Not gameRunning Or gameOver Then Exit Sub
 
     If playerLane < LaneCount() Then
         playerLane = playerLane + 1
         RenderSatellite ThisWorkbook.Worksheets(SHEET_NAME)
     End If
-
 End Sub
 
 Public Sub EnableShipControls()
-
     Application.OnKey "{LEFT}", "'" & ThisWorkbook.Name & "'!MoveLeft"
     Application.OnKey "{RIGHT}", "'" & ThisWorkbook.Name & "'!MoveRight"
     Application.OnKey "a", "'" & ThisWorkbook.Name & "'!MoveLeft"
     Application.OnKey "d", "'" & ThisWorkbook.Name & "'!MoveRight"
-
 End Sub
 
 Public Sub DisableShipControls()
-
     Application.OnKey "{LEFT}"
     Application.OnKey "{RIGHT}"
     Application.OnKey "a"
     Application.OnKey "d"
-
 End Sub
 
 Public Sub StartGame()
-
     Dim ws As Worksheet
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
@@ -305,6 +282,7 @@ Public Sub StartGame()
     currentLevel = 1
     survivalSeconds = 0
     currentStreak = 0
+    spawnCounter = 0
     playerLane = 2
 
     Erase debrisLanes
@@ -320,11 +298,9 @@ Public Sub StartGame()
     End If
 
     SpawnDebris
-
 End Sub
 
 Public Sub StartAutoGame()
-
     On Error GoTo StartError
 
     StopAutoGame
@@ -346,11 +322,9 @@ StartError:
 
     MsgBox "Could not start ORBITAL: " & Err.Description, _
            vbExclamation, "ORBITAL"
-
 End Sub
 
 Public Sub StopAutoGame()
-
     gameRunning = False
     DisableShipControls
 
@@ -364,21 +338,12 @@ Public Sub StopAutoGame()
     End If
 
     tickScheduled = False
-
 End Sub
 
 Private Sub ScheduleNextTick()
-
     If Not gameRunning Or gameOver Then Exit Sub
 
-    'Higher levels tick faster.
-    Dim intervalSeconds As Double
-
-    intervalSeconds = 1# - ((currentLevel - 1) * 0.12)
-
-    If intervalSeconds < 0.35 Then intervalSeconds = 0.35
-
-    nextTick = Now + intervalSeconds / 86400#
+    nextTick = Now + TimeSerial(0, 0, 1)
 
     Application.OnTime _
         EarliestTime:=nextTick, _
@@ -386,11 +351,9 @@ Private Sub ScheduleNextTick()
         Schedule:=True
 
     tickScheduled = True
-
 End Sub
 
 Public Sub AutoGameTick()
-
     tickScheduled = False
 
     If Not gameRunning Or gameOver Then Exit Sub
@@ -400,23 +363,28 @@ Public Sub AutoGameTick()
     If gameRunning And Not gameOver Then
         ScheduleNextTick
     End If
-
 End Sub
 
 Private Sub SpawnDebris()
-
     Dim lane As Long
     Dim i As Long
     Dim attempts As Long
     Dim laneUsed(1 To 4) As Boolean
     Dim wanted As Long
+    Dim spawnEvery As Long
+
+    spawnEvery = 3
+    If currentLevel >= 3 Then spawnEvery = 2
+    If currentLevel >= 10 Then spawnEvery = 1
+
+    spawnCounter = spawnCounter + 1
+    If spawnCounter < spawnEvery Then Exit Sub
+    spawnCounter = 0
 
     wanted = 1
-
     If currentLevel >= 3 Then wanted = 2
-    If currentLevel >= 4 Then wanted = 3
-    If currentLevel >= 6 Then wanted = 4
-
+    If currentLevel >= 8 Then wanted = 3
+    If currentLevel >= 15 Then wanted = 4
     If wanted > LaneCount() Then wanted = LaneCount()
 
     For i = 1 To debrisCount
@@ -426,6 +394,7 @@ Private Sub SpawnDebris()
     Next i
 
     For i = 1 To wanted
+        If debrisCount >= 4 Then Exit For
 
         attempts = 0
 
@@ -441,13 +410,10 @@ Private Sub SpawnDebris()
             laneUsed(lane) = True
             DrawDebris debrisCount
         End If
-
     Next i
-
 End Sub
 
 Private Sub DrawDebris(ByVal index As Long)
-
     Dim ws As Worksheet
     Dim debrisCell As Range
 
@@ -463,28 +429,24 @@ Private Sub DrawDebris(ByVal index As Long)
     debrisCell.Font.Color = RGB(255, 105, 105)
     debrisCell.HorizontalAlignment = xlCenter
     debrisCell.VerticalAlignment = xlCenter
-
 End Sub
 
 Private Sub ClearDebrisCell(ByVal lane As Long, ByVal rowNumber As Long)
-
     Dim ws As Worksheet
     Dim debrisCell As Range
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
     Set debrisCell = ws.Cells(rowNumber, LaneColumn(lane))
-
-    'Only clear the content, never an entire merged area.
     debrisCell.ClearContents
-
 End Sub
 
 Public Sub GameTick()
-
     Dim ws As Worksheet
     Dim i As Long
     Dim lane As Long
     Dim rowNumber As Long
+    Dim stepCount As Long
+    Dim stepIndex As Long
 
     If gameOver Or Not gameRunning Then Exit Sub
 
@@ -498,45 +460,47 @@ Public Sub GameTick()
     End If
 
     If survivalSeconds Mod LEVEL_SECONDS = 0 Then
-
-        If currentLevel < 6 Then
-            currentLevel = currentLevel + 1
-            DrawLanes
-            RenderSatellite ws
-        End If
-
+        currentLevel = currentLevel + 1
+        DrawLanes
+        RenderSatellite ws
     End If
 
-    For i = debrisCount To 1 Step -1
+    stepCount = 1
+    If currentLevel >= 9 Then stepCount = 2
+    If currentLevel >= 17 Then stepCount = 3
 
+    For i = debrisCount To 1 Step -1
         lane = debrisLanes(i)
         rowNumber = debrisRows(i)
 
         ClearDebrisCell lane, rowNumber
-        debrisRows(i) = debrisRows(i) + 1
 
-        If debrisRows(i) >= PLAYER_ROW Then
+        For stepIndex = 1 To stepCount
+            rowNumber = rowNumber + 1
 
-            If lane = playerLane Then
-                EndGame
-                Exit Sub
+            If rowNumber >= PLAYER_ROW Then
+                If lane = playerLane Then
+                    EndGame
+                    Exit Sub
+                End If
+
+                Exit For
             End If
+        Next stepIndex
 
+        If rowNumber >= PLAYER_ROW Then
             RemoveDebris i
-
         Else
+            debrisRows(i) = rowNumber
             DrawDebris i
         End If
-
     Next i
 
     SpawnDebris
     UpdateStatus
-
 End Sub
 
 Private Sub RemoveDebris(ByVal index As Long)
-
     Dim i As Long
 
     For i = index To debrisCount - 1
@@ -549,11 +513,9 @@ Private Sub RemoveDebris(ByVal index As Long)
         debrisRows(debrisCount) = 0
         debrisCount = debrisCount - 1
     End If
-
 End Sub
 
 Private Sub EndGame()
-
     Dim ws As Worksheet
 
     gameOver = True
@@ -574,11 +536,9 @@ Private Sub EndGame()
            "Survival time: " & FormatTime(survivalSeconds) & vbCrLf & _
            "Best streak: " & FormatTime(bestStreak), _
            vbExclamation, "ORBITAL"
-
 End Sub
 
 Private Sub UpdateStatus()
-
     Dim ws As Worksheet
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
@@ -589,14 +549,11 @@ Private Sub UpdateStatus()
                  "  |  STREAK " & FormatTime(currentStreak)
         .Font.Color = RGB(73, 217, 154)
     End With
-
 End Sub
 
 Private Function FormatTime(ByVal totalSeconds As Long) As String
-
     FormatTime = Format$(totalSeconds \ 60, "00") & ":" & _
                  Format$(totalSeconds Mod 60, "00")
-
 End Function
 
 Public Function IsGameOver() As Boolean
@@ -604,7 +561,6 @@ Public Function IsGameOver() As Boolean
 End Function
 
 Public Sub CreateGameButtons()
-
     Dim ws As Worksheet
     Dim btn As Shape
 
@@ -648,5 +604,4 @@ Public Sub CreateGameButtons()
         .TextFrame.Characters.Font.Color = RGB(255, 105, 105)
         .Placement = xlMove
     End With
-
 End Sub
