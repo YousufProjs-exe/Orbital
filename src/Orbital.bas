@@ -461,6 +461,15 @@ Public Sub GameTick()
 
     If survivalSeconds Mod LEVEL_SECONDS = 0 Then
         currentLevel = currentLevel + 1
+
+        ' for init - lane 4 befor e le 6 
+        If currentLevel = 6 Then
+            MsgBox "ORBITAL UPDATE" & vbCrLf & vbCrLf & _
+                   "NEW LANE UNLOCKED" & vbCrLf & _
+                   "4-LANE MODE ACTIVATED", _
+                   vbInformation, "ORBITAL"
+        End If
+
         DrawLanes
         RenderSatellite ws
     End If
