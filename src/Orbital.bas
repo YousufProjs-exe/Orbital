@@ -6,8 +6,6 @@ Private Const PLAYER_ROW As Long = 20
 Private Const SAFE_ROW As Long = 19
 Private Const FIRST_DEBRIS_ROW As Long = 7
 Private Const LEVEL_SECONDS As Long = 15
-Private Const PLAYER_SYMBOL As String = "A"
-Private Const DEBRIS_SYMBOL As String = "X"
 
 Private debrisLanes(1 To 4) As Long
 Private debrisRows(1 To 4) As Long
@@ -23,6 +21,53 @@ Private gameRunning As Boolean
 Private nextTick As Date
 Private tickScheduled As Boolean
 Private randomInitialized As Boolean
+
+Private Function AssetPath(ByVal fileName As String) As String
+    Dim rootPath As String
+
+    rootPath = ThisWorkbook.Path
+    If Len(rootPath) = 0 Then rootPath = CurDir$
+
+    AssetPath = rootPath & Application.PathSeparator & "assets" & _
+                Application.PathSeparator & fileName
+End Function
+
+Public Function AssetsAvailable() As Boolean
+    Dim requiredFiles As Variant
+    Dim fileName As Variant
+    Dim fullPath As String
+
+    requiredFiles = Array("rocket1.png", "rocket2.png", _
+                          "stone1.png", "stone2.png", "space_bg.png")
+
+    For Each fileName In requiredFiles
+        fullPath = AssetPath(CStr(fileName))
+
+        If Len(Dir$(fullPath)) = 0 Then
+            MsgBox "Missing ORBITAL asset:" & vbCrLf & fullPath & vbCrLf & _
+                   "Extract the assets folder beside ORBITAL.xlsm.", _
+                   vbExclamation, "ORBITAL Assets"
+            AssetsAvailable = False
+            Exit Function
+        End If
+    Next fileName
+
+    AssetsAvailable = True
+End Function
+
+Public Sub ApplySpaceBackground()
+    Dim ws As Worksheet
+    Dim fullPath As String
+
+    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+    fullPath = AssetPath("space_bg.png")
+
+    If Len(Dir$(fullPath)) > 0 Then
+        On Error Resume Next
+        ws.SetBackgroundPicture fullPath
+        On Error GoTo 0
+    End If
+End Sub
 
 Private Function LaneCount() As Long
     If currentLevel >= 6 Then
@@ -40,6 +85,59 @@ Private Function LaneColumn(ByVal lane As Long) As Long
     End If
 End Function
 
+Private Sub DeleteShapeIfExists(ByVal shapeName As String)
+    On Error Resume Next
+    ThisWorkbook.Worksheets(SHEET_NAME).Shapes(shapeName).Delete
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearDebrisPictures()
+    Dim i As Long
+
+    For i = 1 To 4
+        DeleteShapeIfExists "sprDebris" & CStr(i)
+    Next i
+End Sub
+
+Private Sub AddPictureToCell(ByVal shapeName As String, _
+                             ByVal fileName As String, _
+                             ByVal targetCell As Range, _
+                             ByVal maxWidth As Single, _
+                             ByVal maxHeight As Single)
+    Dim ws As Worksheet
+    Dim pictureShape As Shape
+    Dim fullPath As String
+
+    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+    fullPath = AssetPath(fileName)
+
+    If Len(Dir$(fullPath)) = 0 Then Exit Sub
+
+    DeleteShapeIfExists shapeName
+
+    Set pictureShape = ws.Shapes.AddPicture( _
+        Filename:=fullPath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=targetCell.Left, _
+        Top:=targetCell.Top, _
+        Width:=-1, _
+        Height:=-1)
+
+    With pictureShape
+        .Name = shapeName
+        .LockAspectRatio = msoTrue
+        .Height = maxHeight
+
+        If .Width > maxWidth Then .Width = maxWidth
+
+        .Left = targetCell.Left + (targetCell.Width - .Width) / 2
+        .Top = targetCell.Top + (targetCell.Height - .Height) / 2
+        .Placement = xlMove
+        .ZOrder msoBringToFront
+    End With
+End Sub
+
 Public Sub SetupBoard()
     Dim ws As Worksheet
     Dim i As Long
@@ -51,6 +149,7 @@ Public Sub SetupBoard()
     DisableShipControls
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+    Application.Run "'" & ThisWorkbook.Name & "'!RestoreAllGridlines"
 
     For i = ws.Shapes.Count To 1 Step -1
         ws.Shapes(i).Delete
@@ -60,7 +159,7 @@ Public Sub SetupBoard()
     ws.Range("B2:N25").Clear
 
     With ws.Range("B2:J24")
-        .Interior.Color = RGB(19, 27, 35)
+        .Interior.Pattern = xlNone
         .Font.Name = "Consolas"
 
         With .Borders
@@ -74,7 +173,6 @@ Public Sub SetupBoard()
 
     ws.Columns("B:N").ColumnWidth = 9
     ws.Rows("2:25").RowHeight = 25
-
     ws.Rows(2).RowHeight = 40
     ws.Rows(3).RowHeight = 26
     ws.Rows(4).RowHeight = 30
@@ -93,7 +191,6 @@ Public Sub SetupBoard()
     With ws.Range("D2:J2")
         .Merge
         .Value = "ORBITAL"
-        .Interior.Color = RGB(19, 27, 35)
         .Font.Name = "Consolas"
         .Font.Size = 23
         .Font.Bold = True
@@ -105,7 +202,6 @@ Public Sub SetupBoard()
     With ws.Range("B3:J3")
         .Merge
         .Value = "SATELLITE SURVIVAL"
-        .Interior.Color = RGB(23, 34, 43)
         .Font.Name = "Consolas"
         .Font.Size = 9
         .Font.Color = RGB(151, 165, 173)
@@ -116,7 +212,6 @@ Public Sub SetupBoard()
     With ws.Range("B4:J4")
         .Merge
         .Value = "MISSION READY"
-        .Interior.Color = RGB(23, 34, 43)
         .Font.Name = "Consolas"
         .Font.Size = 9
         .Font.Bold = True
@@ -165,10 +260,11 @@ Public Sub DrawLanes()
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
 
+    ws.Range("D6:J20").UnMerge
     ws.Range("D6:J20").ClearContents
 
     With ws.Range("D6:J20")
-        .Interior.Color = RGB(19, 27, 35)
+        .Interior.Pattern = xlNone
 
         With .Borders
             .LineStyle = xlContinuous
@@ -247,29 +343,23 @@ Public Sub PlaceSatellite()
 End Sub
 
 Private Sub RenderSatellite(ByVal ws As Worksheet)
-    Dim lane As Long
-    Dim spriteCell As Range
+    Dim targetCell As Range
+    Dim fileName As String
 
     If playerLane < 1 Then playerLane = 1
     If playerLane > LaneCount() Then playerLane = LaneCount()
 
-    For lane = 1 To LaneCount()
-        Set spriteCell = ws.Cells(PLAYER_ROW, LaneColumn(lane))
-        spriteCell.ClearContents
-    Next lane
+    DeleteShapeIfExists "sprPlayer"
+    Set targetCell = ws.Cells(PLAYER_ROW, LaneColumn(playerLane))
 
-    Set spriteCell = ws.Cells(PLAYER_ROW, LaneColumn(playerLane))
+    If currentLevel >= 6 Then
+        fileName = "rocket2.png"
+    Else
+        fileName = "rocket1.png"
+    End If
 
-    With spriteCell
-        .Value = PLAYER_SYMBOL
-        .Font.Name = "Consolas"
-        .Font.Size = 22
-        .Font.Bold = True
-        .Font.Color = RGB(128, 164, 145)
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-        .Interior.Color = RGB(16, 29, 40)
-    End With
+    AddPictureToCell "sprPlayer", fileName, targetCell, _
+                     targetCell.Width - 8, targetCell.Height - 2
 End Sub
 
 Public Sub MoveLeft()
@@ -315,6 +405,7 @@ Public Sub StartGame()
 
     Erase debrisLanes
     Erase debrisRows
+    ClearDebrisPictures
 
     DrawLanes
     PlaceSatellite
@@ -326,14 +417,16 @@ Public Sub StartGame()
     End If
 
     SpawnDebris
+    DrawAllDebrisPictures
 End Sub
 
 Public Sub StartAutoGame()
     On Error GoTo StartError
 
+    If Not AssetsAvailable() Then Exit Sub
+
     StopAutoGame
     DisableShipControls
-
     gameRunning = False
     gameOver = False
     currentLevel = 1
@@ -373,7 +466,6 @@ Public Sub TogglePauseResume()
     Dim btn As Shape
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-
     If gameOver Then Exit Sub
 
     If gameRunning Then
@@ -390,8 +482,8 @@ Public Sub TogglePauseResume()
         End If
 
         tickScheduled = False
-
         Set btn = Nothing
+
         On Error Resume Next
         Set btn = ws.Shapes("btnStop")
         On Error GoTo 0
@@ -406,7 +498,6 @@ Public Sub TogglePauseResume()
             .Value = "MISSION PAUSED / SURVIVAL " & FormatTime(survivalSeconds)
             .Font.Color = RGB(225, 174, 131)
         End With
-
     Else
         gameRunning = True
         EnableShipControls
@@ -442,14 +533,11 @@ End Sub
 
 Public Sub AutoGameTick()
     tickScheduled = False
-
     If Not gameRunning Or gameOver Then Exit Sub
 
     GameTick
 
-    If gameRunning And Not gameOver Then
-        ScheduleNextTick
-    End If
+    If gameRunning And Not gameOver Then ScheduleNextTick
 End Sub
 
 Private Sub SpawnDebris()
@@ -471,7 +559,6 @@ Private Sub SpawnDebris()
     wanted = 1
     If currentLevel >= 3 Then wanted = 2
     If currentLevel >= 8 Then wanted = 3
-
     If wanted > LaneCount() Then wanted = LaneCount()
 
     For i = 1 To debrisCount
@@ -496,42 +583,40 @@ Private Sub SpawnDebris()
             debrisLanes(debrisCount) = lane
             debrisRows(debrisCount) = FIRST_DEBRIS_ROW
             laneUsed(lane) = True
-            DrawDebris debrisCount
         End If
     Next i
 End Sub
 
 Private Sub DrawDebris(ByVal index As Long)
     Dim ws As Worksheet
-    Dim debrisCell As Range
+    Dim targetCell As Range
+    Dim fileName As String
     Dim lane As Long
 
     lane = debrisLanes(index)
     If lane < 1 Or lane > LaneCount() Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-    Set debrisCell = ws.Cells(debrisRows(index), LaneColumn(lane))
+    Set targetCell = ws.Cells(debrisRows(index), LaneColumn(lane))
 
-    With debrisCell
-        .Value = DEBRIS_SYMBOL
-        .Font.Name = "Consolas"
-        .Font.Size = 18
-        .Font.Bold = True
-        .Font.Color = RGB(225, 125, 112)
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-    End With
+    If currentLevel >= 6 Then
+        fileName = "stone2.png"
+    Else
+        fileName = "stone1.png"
+    End If
+
+    AddPictureToCell "sprDebris" & CStr(index), fileName, _
+                     targetCell, targetCell.Width - 8, targetCell.Height - 3
 End Sub
 
-Private Sub ClearDebrisCell(ByVal lane As Long, ByVal rowNumber As Long)
-    Dim ws As Worksheet
+Private Sub DrawAllDebrisPictures()
+    Dim i As Long
 
-    If lane < 1 Or lane > 3 Then Exit Sub
+    ClearDebrisPictures
 
-    If lane <= LaneCount() Then
-        Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-        ws.Cells(rowNumber, LaneColumn(lane)).ClearContents
-    End If
+    For i = 1 To debrisCount
+        DrawDebris i
+    Next i
 End Sub
 
 Private Sub RemoveDebris(ByVal index As Long)
@@ -553,9 +638,7 @@ Private Sub RemoveInactiveLaneDebris()
     Dim i As Long
 
     For i = debrisCount To 1 Step -1
-        If debrisLanes(i) > LaneCount() Then
-            RemoveDebris i
-        End If
+        If debrisLanes(i) > LaneCount() Then RemoveDebris i
     Next i
 End Sub
 
@@ -570,13 +653,10 @@ Public Sub GameTick()
     If gameOver Or Not gameRunning Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-
     survivalSeconds = survivalSeconds + 1
     currentStreak = currentStreak + 1
 
-    If currentStreak > bestStreak Then
-        bestStreak = currentStreak
-    End If
+    If currentStreak > bestStreak Then bestStreak = currentStreak
 
     If survivalSeconds Mod LEVEL_SECONDS = 0 Then
         currentLevel = currentLevel + 1
@@ -584,10 +664,11 @@ Public Sub GameTick()
         If currentLevel = 6 Then
             If playerLane > 2 Then playerLane = 2
             RemoveInactiveLaneDebris
+            ClearDebrisPictures
+            DrawLanes
+            RenderSatellite ws
+            DrawAllDebrisPictures
         End If
-
-        DrawLanes
-        RenderSatellite ws
     End If
 
     stepCount = 1
@@ -595,22 +676,19 @@ Public Sub GameTick()
     If currentLevel >= 17 Then stepCount = 3
 
     For i = debrisCount To 1 Step -1
+        DeleteShapeIfExists "sprDebris" & CStr(i)
         lane = debrisLanes(i)
         rowNumber = debrisRows(i)
-
-        If lane >= 1 And lane <= LaneCount() Then
-            ClearDebrisCell lane, rowNumber
-        End If
 
         For stepIndex = 1 To stepCount
             rowNumber = rowNumber + 1
 
             If rowNumber >= PLAYER_ROW Then
                 If lane = playerLane Then
+                    DrawAllDebrisPictures
                     EndGame
                     Exit Sub
                 End If
-
                 Exit For
             End If
         Next stepIndex
@@ -619,11 +697,11 @@ Public Sub GameTick()
             RemoveDebris i
         Else
             debrisRows(i) = rowNumber
-            DrawDebris i
         End If
     Next i
 
     SpawnDebris
+    DrawAllDebrisPictures
     UpdateStatus
 End Sub
 
@@ -634,7 +712,6 @@ Private Sub EndGame()
     gameOver = True
     gameRunning = False
     currentStreak = 0
-
     DisableShipControls
 
     If tickScheduled Then
@@ -648,15 +725,13 @@ Private Sub EndGame()
 
     tickScheduled = False
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-
     Set btn = Nothing
+
     On Error Resume Next
     Set btn = ws.Shapes("btnStop")
     On Error GoTo 0
 
-    If Not btn Is Nothing Then
-        btn.TextFrame.Characters.Text = "MISSION ENDED"
-    End If
+    If Not btn Is Nothing Then btn.TextFrame.Characters.Text = "MISSION ENDED"
 
     With ws.Range("B4")
         .Value = "MISSION FAILED / SURVIVAL " & FormatTime(survivalSeconds)
@@ -703,17 +778,13 @@ Public Sub CreateGameButtons()
 
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
 
-    On Error Resume Next
-    ws.Shapes("btnMainMenu").Delete
-    ws.Shapes("btnStart").Delete
-    ws.Shapes("btnStop").Delete
-    On Error GoTo 0
+    DeleteShapeIfExists "btnMainMenu"
+    DeleteShapeIfExists "btnStart"
+    DeleteShapeIfExists "btnStop"
 
     Set btn = ws.Shapes.AddShape( _
-        msoShapeRectangle, _
-        ws.Range("B2").Left + 3, _
-        ws.Range("B2").Top + 7, _
-        ws.Range("B2:C2").Width - 6, 25)
+        msoShapeRectangle, ws.Range("B2").Left + 3, _
+        ws.Range("B2").Top + 7, ws.Range("B2:C2").Width - 6, 25)
 
     With btn
         .Name = "btnMainMenu"
@@ -730,8 +801,7 @@ Public Sub CreateGameButtons()
     End With
 
     Set btn = ws.Shapes.AddShape( _
-        msoShapeRectangle, _
-        ws.Range("C23").Left, _
+        msoShapeRectangle, ws.Range("C23").Left, _
         ws.Range("C23").Top + 1, 155, 23)
 
     With btn
@@ -750,8 +820,7 @@ Public Sub CreateGameButtons()
     End With
 
     Set btn = ws.Shapes.AddShape( _
-        msoShapeRectangle, _
-        ws.Range("G23").Left, _
+        msoShapeRectangle, ws.Range("G23").Left, _
         ws.Range("G23").Top + 1, 115, 23)
 
     With btn

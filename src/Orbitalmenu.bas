@@ -3,6 +3,21 @@ Option Explicit
 
 Private Const MENU_SHEET As String = "Orbital"
 
+Public Sub RestoreAllGridlines()
+    Dim ws As Worksheet
+
+    Set ws = ThisWorkbook.Worksheets(MENU_SHEET)
+    ws.Activate
+
+    With ws.Cells
+        .Interior.Pattern = xlNone
+        .Borders.LineStyle = xlNone
+    End With
+
+    ActiveWindow.DisplayGridlines = True
+    Application.Run "'" & ThisWorkbook.Name & "'!ApplySpaceBackground"
+End Sub
+
 Public Sub ShowMainMenu()
     Dim ws As Worksheet
     Dim cell As Range
@@ -29,7 +44,7 @@ Public Sub ShowMainMenu()
     ws.Range("B2:N25").Clear
 
     With ws.Range("B2:J24")
-        .Interior.Color = RGB(19, 27, 35)
+        .Interior.Pattern = xlNone
         .Font.Name = "Consolas"
 
         With .Borders
@@ -43,14 +58,13 @@ Public Sub ShowMainMenu()
 
     ws.Columns("B:N").ColumnWidth = 9
     ws.Rows("2:24").RowHeight = 24
-
     ws.Rows(2).RowHeight = 12
     ws.Rows(3).RowHeight = 38
     ws.Rows(4).RowHeight = 10
     ws.Rows(5).RowHeight = 24
     ws.Rows(6).RowHeight = 12
     ws.Rows(7).RowHeight = 25
-    ws.Rows("8:10").RowHeight = 23
+    ws.Rows("8:10").RowHeight = 23 
     ws.Rows(11).RowHeight = 10
     ws.Rows("12:14").RowHeight = 23
     ws.Rows(15).RowHeight = 12
@@ -65,7 +79,7 @@ Public Sub ShowMainMenu()
     With ws.Range("B3:J3")
         .Merge
         .Value = "ORBITAL"
-        .Interior.Color = RGB(19, 27, 35)
+        .Interior.Pattern = xlNone
         .Font.Name = "Consolas"
         .Font.Size = 27
         .Font.Bold = True
@@ -196,7 +210,8 @@ Public Sub Orbital_StartMission()
     Exit Sub
 
 LaunchError:
-    MsgBox "Could not launch ORBITAL: " & Err.Description, vbExclamation, "ORBITAL"
+    MsgBox "Could not launch ORBITAL: " & Err.Description, _
+           vbExclamation, "ORBITAL"
 End Sub
 
 Public Sub Orbital_ReturnToMenu()
@@ -204,24 +219,10 @@ Public Sub Orbital_ReturnToMenu()
 
     Application.Run "'" & ThisWorkbook.Name & "'!StopAutoGame"
     Application.Run "'" & ThisWorkbook.Name & "'!DisableShipControls"
-
     ShowMainMenu
     Exit Sub
 
 ReturnError:
-    MsgBox "Could not return to the main menu: " & Err.Description, vbExclamation, "ORBITAL"
-End Sub
-
-Public Sub RestoreAllGridlines()
-    Dim ws As Worksheet
-
-    Set ws = ThisWorkbook.Worksheets("Orbital")
-    ws.Activate
-
-    With ws.Cells
-        .Interior.Pattern = xlNone
-        .Borders.LineStyle = xlNone
-    End With
-
-    ActiveWindow.DisplayGridlines = True
+    MsgBox "Could not return to the main menu: " & Err.Description, _
+           vbExclamation, "ORBITAL"
 End Sub
