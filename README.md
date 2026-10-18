@@ -6,7 +6,7 @@ A satellite survival game made in Excel VBA. Project inspired for Wrong by Hack 
 ## TO PLAY ORBITAL - 
 click on this [link](https://1drv.ms/x/c/659bf10470ee1146/IQBY8v-Y3jKrTZdMYFQl5f8oAU_c7hnoLzihQeygqLiB7N0?e=hHhQgD) and then download the spreadsheet and click on Launch Game on sheet 1 or just go to sheet 2 and press Start.
 
-<img src="assets/image.png" alt="ORBITAL gameplay screenshot" width="800">
+<img src="src/assets/image.png" alt="ORBITAL gameplay screenshot" width="800">
 
 ## About
 
@@ -22,27 +22,27 @@ ORBITAL is a small game built entirely in Microsoft Excel using VBA. Dodge space
 
 ## Rockets
 
-<img src="assets/rocket1.png" alt="Rocket 1" width="120">
+<img src="src/assets/rocket1.png" alt="Rocket 1" width="120">
 
-**Rocket 1** — Used in levels 1–5.
+**Rocket 1** - for level 1-5 
 
-<img src="assets/rocket2.png" alt="Rocket 2" width="120">
+<img src="src/assets/rocket2.png" alt="Rocket 2" width="120">
 
-**Rocket 2** — Used from level 6 onwards. for pros 
+**Rocket 2** - for level 6 to the end 
 
 ## Space Debris
 
-<img src="assets/stone1.png" alt="Regular space debris" width="100">
+<img src="src/assets/stone1.png" alt="Regular space debris" width="100">
 
 Regular debris.
 
-<img src="assets/stone2.png" alt="Flaming space debris" width="100">
+<img src="src/assets/stone2.png" alt="Flaming space debris" width="100">
 
 Flaming debris, introduced at level 6. for pros to stay pro 
 
 ## Background
 
-<img src="assets/space_bg.png" alt="Nice ORBITAL space background" width="600">
+<img src="src/assets/space_bg.png" alt="Nice ORBITAL space background" width="600">
 
 ## Running the game
 
