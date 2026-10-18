@@ -55,19 +55,26 @@ Public Function AssetsAvailable() As Boolean
     AssetsAvailable = True
 End Function
 
+
 Public Sub ApplySpaceBackground()
     Dim ws As Worksheet
+    Dim panel As Range
     Dim fullPath As String
+    Dim bg As Shape
 
-    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+    Set ws = ThisWorkbook.Worksheets("Orbital")
+    Set panel = ws.Range("B2:J24")
     fullPath = AssetPath("space_bg.png")
 
-    If Len(Dir$(fullPath)) > 0 Then
-        On Error Resume Next
-        ws.SetBackgroundPicture fullPath
-        On Error GoTo 0
-    End If
+    On Error Resume Next
+    ws.Shapes("orbitalSpaceBG").Delete
+    On Error GoTo 0
+
+    If Len(Dir$(fullPath)) = 0 Then Exit Sub
+
+    panel.Interior.Color = RGB(8, 12, 26)
 End Sub
+
 
 Private Function LaneCount() As Long
     If currentLevel >= 6 Then
@@ -116,7 +123,7 @@ Private Sub AddPictureToCell(ByVal shapeName As String, _
     DeleteShapeIfExists shapeName
 
     Set pictureShape = ws.Shapes.AddPicture( _
-        Filename:=fullPath, _
+        fileName:=fullPath, _
         LinkToFile:=msoFalse, _
         SaveWithDocument:=msoTrue, _
         Left:=targetCell.Left, _
@@ -242,6 +249,7 @@ Public Sub SetupBoard()
 
     DrawLanes
     CreateGameButtons
+    ApplySpaceBackground
 
     Application.ScreenUpdating = True
     Exit Sub

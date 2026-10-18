@@ -6,7 +6,7 @@ Private Const MENU_SHEET As String = "Orbital"
 Public Sub RestoreAllGridlines()
     Dim ws As Worksheet
 
-    Set ws = ThisWorkbook.Worksheets(MENU_SHEET)
+    Set ws = ThisWorkbook.Worksheets("Orbital")
     ws.Activate
 
     With ws.Cells
@@ -15,7 +15,6 @@ Public Sub RestoreAllGridlines()
     End With
 
     ActiveWindow.DisplayGridlines = True
-    Application.Run "'" & ThisWorkbook.Name & "'!ApplySpaceBackground"
 End Sub
 
 Public Sub ShowMainMenu()
@@ -64,7 +63,7 @@ Public Sub ShowMainMenu()
     ws.Rows(5).RowHeight = 24
     ws.Rows(6).RowHeight = 12
     ws.Rows(7).RowHeight = 25
-    ws.Rows("8:10").RowHeight = 23 
+    ws.Rows("8:10").RowHeight = 23
     ws.Rows(11).RowHeight = 10
     ws.Rows("12:14").RowHeight = 23
     ws.Rows(15).RowHeight = 12
@@ -195,7 +194,7 @@ Public Sub ShowMainMenu()
     ActiveWindow.DisplayGridlines = True
     ActiveWindow.Zoom = 90
 
-    Application.ScreenUpdating = True
+    Application.Run "'" & ThisWorkbook.Name & "'!ApplySpaceBackground"
     Exit Sub
 
 MenuError:
@@ -225,4 +224,44 @@ Public Sub Orbital_ReturnToMenu()
 ReturnError:
     MsgBox "Could not return to the main menu: " & Err.Description, _
            vbExclamation, "ORBITAL"
+End Sub
+
+
+Public Sub LaunchOrbital()
+    ThisWorkbook.Worksheets("Orbital").Activate
+    ShowMainMenu
+End Sub
+
+Public Sub CreateAboutLaunchButton()
+    Dim ws As Worksheet
+    Dim btn As Shape
+
+    Set ws = ThisWorkbook.Worksheets("About Orbital")
+
+    On Error Resume Next
+    ws.Shapes("btnLaunchOrbital").Delete
+    On Error GoTo 0
+
+    Set btn = ws.Shapes.AddShape( _
+        msoShapeRectangle, _
+        ws.Range("B20").Left, _
+        ws.Range("B20").Top, _
+        220, 48)
+
+    With btn
+        .Name = "btnLaunchOrbital"
+        .Fill.ForeColor.RGB = RGB(25, 91, 115)
+        .Line.Visible = msoFalse
+        .OnAction = "'" & ThisWorkbook.Name & "'!LaunchOrbital"
+
+        With .TextFrame2
+            .TextRange.Text = "LAUNCH ORBITAL"
+            .TextRange.Font.Name = "Aptos"
+            .TextRange.Font.Size = 15
+            .TextRange.Font.Bold = msoTrue
+            .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
+            .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            .VerticalAnchor = msoAnchorMiddle
+        End With
+    End With
 End Sub
