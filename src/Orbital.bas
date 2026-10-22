@@ -1,4 +1,3 @@
-
 Option Explicit
 
 Private Const SHEET_NAME As String = "Orbital"
@@ -6,7 +5,6 @@ Private Const PLAYER_ROW As Long = 20
 Private Const SAFE_ROW As Long = 19
 Private Const FIRST_DEBRIS_ROW As Long = 7
 Private Const LEVEL_SECONDS As Long = 15
-
 Private debrisLanes(1 To 4) As Long
 Private debrisRows(1 To 4) As Long
 Private debrisCount As Long
@@ -28,8 +26,7 @@ Private Function AssetPath(ByVal fileName As String) As String
     rootPath = ThisWorkbook.Path
     If Len(rootPath) = 0 Then rootPath = CurDir$
 
-    AssetPath = rootPath & Application.PathSeparator & "assets" & _
-                Application.PathSeparator & fileName
+    AssetPath = rootPath & Application.PathSeparator & "assets" & Application.PathSeparator & fileName
 End Function
 
 Public Function AssetsAvailable() As Boolean
@@ -37,16 +34,14 @@ Public Function AssetsAvailable() As Boolean
     Dim fileName As Variant
     Dim fullPath As String
 
-    requiredFiles = Array("rocket1.png", "rocket2.png", _
-                          "stone1.png", "stone2.png", "space_bg.png")
+    ' enough - rocket 2 was hrd to design 
+    requiredFiles = Array("rocket1.png", "rocket2.png", "stone1.png", "stone2.png", "space_bg.png")
 
     For Each fileName In requiredFiles
         fullPath = AssetPath(CStr(fileName))
 
         If Len(Dir$(fullPath)) = 0 Then
-            MsgBox "Missing ORBITAL asset:" & vbCrLf & fullPath & vbCrLf & _
-                   "Extract the assets folder beside ORBITAL.xlsm.", _
-                   vbExclamation, "ORBITAL Assets"
+            MsgBox "Missing ORBITAL asset:" & vbCrLf & fullPath & vbCrLf & "Extract the assets folder beside ORBITAL.xlsm.", vbExclamation, "ORBITAL Assets"
             AssetsAvailable = False
             Exit Function
         End If
@@ -54,7 +49,6 @@ Public Function AssetsAvailable() As Boolean
 
     AssetsAvailable = True
 End Function
-
 
 Public Sub ApplySpaceBackground()
     Dim ws As Worksheet
@@ -74,7 +68,6 @@ Public Sub ApplySpaceBackground()
 
     panel.Interior.Color = RGB(8, 12, 26)
 End Sub
-
 
 Private Function LaneCount() As Long
     If currentLevel >= 6 Then
@@ -106,11 +99,7 @@ Private Sub ClearDebrisPictures()
     Next i
 End Sub
 
-Private Sub AddPictureToCell(ByVal shapeName As String, _
-                             ByVal fileName As String, _
-                             ByVal targetCell As Range, _
-                             ByVal maxWidth As Single, _
-                             ByVal maxHeight As Single)
+Private Sub AddPictureToCell(ByVal shapeName As String, ByVal fileName As String, ByVal targetCell As Range, ByVal maxWidth As Single, ByVal maxHeight As Single)
     Dim ws As Worksheet
     Dim pictureShape As Shape
     Dim fullPath As String
@@ -122,14 +111,7 @@ Private Sub AddPictureToCell(ByVal shapeName As String, _
 
     DeleteShapeIfExists shapeName
 
-    Set pictureShape = ws.Shapes.AddPicture( _
-        fileName:=fullPath, _
-        LinkToFile:=msoFalse, _
-        SaveWithDocument:=msoTrue, _
-        Left:=targetCell.Left, _
-        Top:=targetCell.Top, _
-        Width:=-1, _
-        Height:=-1)
+    Set pictureShape = ws.Shapes.AddPicture( fileName:=fullPath, LinkToFile:=msoFalse, SaveWithDocument:=msoTrue, Left:=targetCell.Left, Top:=targetCell.Top, Width:=-1, Height:=-1)
 
     With pictureShape
         .Name = shapeName
@@ -366,8 +348,7 @@ Private Sub RenderSatellite(ByVal ws As Worksheet)
         fileName = "rocket1.png"
     End If
 
-    AddPictureToCell "sprPlayer", fileName, targetCell, _
-                     targetCell.Width - 8, targetCell.Height - 2
+    AddPictureToCell "sprPlayer", fileName, targetCell, targetCell.Width - 8, targetCell.Height - 2
 End Sub
 
 Public Sub MoveLeft()
@@ -531,10 +512,7 @@ Private Sub ScheduleNextTick()
 
     nextTick = Now + TimeSerial(0, 0, 1)
 
-    Application.OnTime _
-        EarliestTime:=nextTick, _
-        Procedure:="'" & ThisWorkbook.Name & "'!AutoGameTick", _
-        Schedule:=True
+    Application.OnTime EarliestTime:=nextTick, Procedure:="'" & ThisWorkbook.Name & "'!AutoGameTick", Schedule:=True
 
     tickScheduled = True
 End Sub
@@ -613,8 +591,7 @@ Private Sub DrawDebris(ByVal index As Long)
         fileName = "stone1.png"
     End If
 
-    AddPictureToCell "sprDebris" & CStr(index), fileName, _
-                     targetCell, targetCell.Width - 8, targetCell.Height - 3
+    AddPictureToCell "sprDebris" & CStr(index), fileName, targetCell, targetCell.Width - 8, targetCell.Height - 3
 End Sub
 
 Private Sub DrawAllDebrisPictures()
@@ -724,10 +701,7 @@ Private Sub EndGame()
 
     If tickScheduled Then
         On Error Resume Next
-        Application.OnTime _
-            EarliestTime:=nextTick, _
-            Procedure:="'" & ThisWorkbook.Name & "'!AutoGameTick", _
-            Schedule:=False
+        Application.OnTime EarliestTime:=nextTick, Procedure:="'" & ThisWorkbook.Name & "'!AutoGameTick", Schedule:=False
         On Error GoTo 0
     End If
 
@@ -746,11 +720,7 @@ Private Sub EndGame()
         .Font.Color = RGB(225, 125, 112)
     End With
 
-    MsgBox "Satellite lost!" & vbCrLf & _
-           "Level reached: " & currentLevel & vbCrLf & _
-           "Survival time: " & FormatTime(survivalSeconds) & vbCrLf & _
-           "Best streak: " & FormatTime(bestStreak), _
-           vbExclamation, "ORBITAL"
+    MsgBox "Satellite lost!" & vbCrLf & "Level reached: " & currentLevel & vbCrLf & "Survival time: " & FormatTime(survivalSeconds) & vbCrLf & "Best streak: " & FormatTime(bestStreak), vbExclamation, "ORBITAL"
 End Sub
 
 Private Sub UpdateStatus()
@@ -759,9 +729,7 @@ Private Sub UpdateStatus()
     Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
 
     With ws.Range("B4")
-        .Value = "LEVEL " & currentLevel & _
-                 " / LANES " & LaneCount() & _
-                 " / SURVIVAL " & FormatTime(survivalSeconds) & _
+        .Value = "LEVEL " & currentLevel & " / LANES " & LaneCount() & " / SURVIVAL " & FormatTime(survivalSeconds) & 
                  " / STREAK " & FormatTime(currentStreak)
         .Font.Name = "Consolas"
         .Font.Size = 8
@@ -771,9 +739,9 @@ Private Sub UpdateStatus()
     End With
 End Sub
 
+' These has to be public 
 Private Function FormatTime(ByVal totalSeconds As Long) As String
-    FormatTime = Format$(totalSeconds \ 60, "00") & ":" & _
-                 Format$(totalSeconds Mod 60, "00")
+    FormatTime = Format$(totalSeconds \ 60, "00") & ":" & Format$(totalSeconds Mod 60, "00")
 End Function
 
 Public Function IsGameOver() As Boolean
