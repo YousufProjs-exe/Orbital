@@ -67,4 +67,4 @@ No AI was used to create the assets or decide the creative direction of ORBITAL.
 
 ## Devlog
 
-See [DEVLOG.md](DEVLOG.md) for the development log, I wrote it manually.
+See [DEVLOG.md](./DEVLOG.md) for the development log, I wrote it manually.
